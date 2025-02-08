@@ -20,8 +20,15 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL, // Your frontend URL
     credentials: true, // Allow sending cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
+
+// Add the credentials header here
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 
 app.use(express.json()); // Parse incoming JSON bodies
 app.use(express.urlencoded({ extended: true })); // For URL-encoded data
