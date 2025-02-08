@@ -285,12 +285,11 @@ router.post("/logout", (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
-      sameSite: "none",
       secure: true,
+      sameSite: "none",
       partitioned: true,
-      //secure: process.env.NODE_ENV === "production", // Enable in production
+      maxAge: 24 * 60 * 60 * 1000, // Optional: 1 day expiration
       path: "/",
-      // maxAge: 0, // Immediately expire the cookie
     });
     // Then set Chrome-specific header
     res.setHeader("Supports-Loading-Mode", "credentialed-prerender");
