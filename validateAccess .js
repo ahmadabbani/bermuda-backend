@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-
+import "dotenv/config";
 const validateAccess = (req, res, next) => {
   try {
     // Get token from cookies

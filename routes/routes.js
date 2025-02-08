@@ -6,6 +6,7 @@ import crypto from "crypto"; // For generating unique tokens
 import nodemailer from "nodemailer"; // For sending emails
 import multer from "multer";
 import path from "path";
+import "dotenv/config";
 import validateAccess from "../validateAccess .js";
 import authenticateUser from "../authenticateUser .js";
 
