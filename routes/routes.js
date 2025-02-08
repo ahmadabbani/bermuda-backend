@@ -209,7 +209,7 @@ router.post("/reset-password-request", async (req, res) => {
       },
     });
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
     const mailOptions = {
       from: "ahmadabbani123@gmail.com",
       to: email,
