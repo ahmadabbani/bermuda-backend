@@ -21,7 +21,12 @@ app.use(
     origin: process.env.CLIENT_URL, // Your frontend URL
     credentials: true, // Allow sending cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "X-Requested-With",
+    ],
   })
 );
 // Add this after CORS middleware but before route handlers
