@@ -32,12 +32,8 @@ app.use("/api", routes); // Prefix the routes with /api
 app.use("/external", externalRoutes);
 
 // In production, serve static files from React build
-if (
-  process.env.NODE_ENV === "production" &&
-  process.env.SERVE_FRONTEND === "true"
-) {
+if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../bermuda-web/dist")));
-
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../bermuda-web/dist/index.html"));
   });
