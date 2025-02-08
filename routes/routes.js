@@ -137,16 +137,17 @@ router.post("/signin", async (req, res) => {
         phone: existingUser.phone,
         authorized: true,
       },
-      "jwt_secret_key", // Replace with a strong, secure secret key
+      process.env.JWT_SECRET_KEY,
       { expiresIn: "1d" }
     );
 
     // Set the token in a secure cookie
     res.cookie("token", token, {
-      //httpOnly: true,
-      sameSite: "Lax",
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000, // Optional: 1 day expiration
-      // path: "/",
+      path: "/",
     });
 
     // Send response
@@ -261,8 +262,9 @@ router.post("/reset-password/:token", async (req, res) => {
     console.log("User found:", user);
     // Clear the token
     res.clearCookie("token", {
-      //httpOnly: true,
-      sameSite: "Lax",
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
       path: "/",
     });
 
@@ -277,10 +279,11 @@ router.post("/reset-password/:token", async (req, res) => {
 router.post("/logout", (req, res) => {
   try {
     res.clearCookie("token", {
-      //httpOnly: true,
-      sameSite: "Lax",
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
       //secure: process.env.NODE_ENV === "production", // Enable in production
-      //path: "/",
+      path: "/",
       // maxAge: 0, // Immediately expire the cookie
     });
 

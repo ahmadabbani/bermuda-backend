@@ -13,7 +13,7 @@ const validateAccess = (req, res, next) => {
     }
 
     // Verify and decode the token
-    const decodedToken = jwt.verify(token, "jwt_secret_key");
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
     // Get the requested user ID from request body
     const { id } = req.params;
