@@ -147,11 +147,12 @@ router.post("/signin", async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain: new URL(process.env.BACKEND_URL).hostname, // Use backend's domain!
       partitioned: true,
       maxAge: 24 * 60 * 60 * 1000, // Optional: 1 day expiration
       path: "/",
     });
+    // Then set Chrome-specific header
+    res.setHeader("Supports-Loading-Mode", "credentialed-prerender");
 
     // Send response
     return res.status(200).json({
@@ -287,11 +288,12 @@ router.post("/logout", (req, res) => {
       sameSite: "none",
       secure: true,
       partitioned: true,
-      domain: new URL(process.env.BACKEND_URL).hostname, // Use backend's domain!
       //secure: process.env.NODE_ENV === "production", // Enable in production
       path: "/",
       // maxAge: 0, // Immediately expire the cookie
     });
+    // Then set Chrome-specific header
+    res.setHeader("Supports-Loading-Mode", "credentialed-prerender");
 
     res.status(200).json({
       success: true,

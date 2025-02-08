@@ -24,6 +24,11 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
 );
+// Add this after CORS middleware but before route handlers
+app.use((req, res, next) => {
+  res.setHeader("Supports-Loading-Mode", "credentialed-prerender");
+  next();
+});
 
 // Add OPTIONS handler here
 app.options("*", (req, res) => {
@@ -32,7 +37,7 @@ app.options("*", (req, res) => {
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Cookie"
+    "Content-Type, Authorization, Cookie, X-Requested-With"
   );
   res.sendStatus(204);
 });
