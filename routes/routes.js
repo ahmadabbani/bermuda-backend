@@ -147,6 +147,7 @@ router.post("/signin", async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "none",
+      partitioned: true,
       maxAge: 24 * 60 * 60 * 1000, // Optional: 1 day expiration
       path: "/",
     });
@@ -266,6 +267,7 @@ router.post("/reset-password/:token", async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "none",
+      partitioned: true,
       path: "/",
     });
 
@@ -283,6 +285,7 @@ router.post("/logout", (req, res) => {
       httpOnly: true,
       sameSite: "none",
       secure: true,
+      partitioned: true,
       //secure: process.env.NODE_ENV === "production", // Enable in production
       path: "/",
       // maxAge: 0, // Immediately expire the cookie

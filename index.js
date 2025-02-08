@@ -21,13 +21,20 @@ app.use(
     origin: process.env.CLIENT_URL, // Your frontend URL
     credentials: true, // Allow sending cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   })
 );
 
-// Add the credentials header here
-app.use((req, res, next) => {
+// Add OPTIONS handler here
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", process.env.CLIENT_URL);
   res.header("Access-Control-Allow-Credentials", "true");
-  next();
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Cookie"
+  );
+  res.sendStatus(204);
 });
 
 app.use(express.json()); // Parse incoming JSON bodies
