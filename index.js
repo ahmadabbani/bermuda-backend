@@ -7,7 +7,8 @@ import externalRoutes from "./routes/productsApi.js"; // External API routes
 import "dotenv/config";
 import path from "path";
 const app = express();
-const PORT = process.env.PORT || 5000;
+// || 5000 for local
+const PORT = process.env.PORT || 8080;
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
