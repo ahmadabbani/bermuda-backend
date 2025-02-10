@@ -5,12 +5,21 @@ import jwt from "jsonwebtoken"; // For token creation
 import crypto from "crypto"; // For generating unique tokens
 import nodemailer from "nodemailer"; // For sending emails
 import multer from "multer";
+import cloudinary from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import path from "path";
 import "dotenv/config";
 import validateAccess from "../validateAccess .js";
 import authenticateUser from "../authenticateUser .js";
 
 const router = express.Router();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Sign-Up Route
 router.post("/signup", async (req, res) => {
@@ -712,24 +721,23 @@ router.post("/orders/myorders", async (req, res) => {
 
 //route to place a payment
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Store images in the "uploads" folder
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+// Configure multer to use Cloudinary
+const paymentStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "payments", // This will create a folder in your Cloudinary account
+    allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
-
-const upload = multer({ storage });
+const uploadPayment = multer({ storage: paymentStorage });
 
 // place the payment
-router.post("/payments", upload.single("image"), async (req, res) => {
+router.post("/payments", uploadPayment.single("image"), async (req, res) => {
   const { product_name, amount, type, user_id, username, status } = req.body;
   const image = req.file ? req.file.path : null; // Get the image path
-
+  console.log("Request body:", req.body);
+  console.log("Uploaded file:", req.file);
+  console.log("Cloudinary URL:", image);
   // Validate required fields
   if (!amount) {
     // || image
@@ -930,13 +938,11 @@ router.get("/profile/:id", authenticateUser, async (req, res) => {
 
 // create new category
 // Multer configuration for categories
-const categoryStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/categories"); // Store category images in the "uploads/categories" folder
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+const categoryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "categories",
+    allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
 
@@ -946,7 +952,7 @@ router.post(
   uploadCategory.single("image"),
   async (req, res) => {
     const { categoryName, section } = req.body;
-    const image = req.file ? req.file.path : null; // Get the image path
+    const image = req.file ? req.file.secure_url : null; // Get the image path
 
     // Validate inputs
     if (!categoryName || !section || !image) {
@@ -955,7 +961,9 @@ router.post(
         message: "All fields are required.",
       });
     }
-
+    console.log("Starting request processing");
+    console.log("Request body:", req.body);
+    console.log("File:", req.file);
     try {
       // Insert category into the database
       const query = `
@@ -1007,13 +1015,11 @@ router.get("/categories", async (req, res) => {
 });
 
 // Configure multer for product file uploads
-const productStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/products"); // Store product images in the "uploads/products" folder
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+const productStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "products",
+    allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
 
@@ -1111,6 +1117,46 @@ router.post(
     }
   }
 );
+
+// Delete a product
+router.delete("/delete/product/:id", async (req, res) => {
+  const productId = req.params.id;
+
+  // Validate ID format first to prevent unnecessary DB calls
+  if (!productId || isNaN(productId)) {
+    return res.status(400).json({
+      deleteStatus: false,
+      message: "Valid numeric product ID is required",
+    });
+  }
+
+  try {
+    // Single atomic operation combining existence check and deletion
+    const [result] = await db.execute(
+      "DELETE FROM products WHERE id = ? LIMIT 1",
+      [productId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        deleteStatus: false,
+        message: "Product not found",
+      });
+    }
+
+    // Successful deletion
+    return res.status(200).json({
+      deleteStatus: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Database error:", error);
+    return res.status(500).json({
+      deleteStatus: false,
+      message: "Database operation failed",
+    });
+  }
+});
 
 // Fetch products from the database
 router.get("/products", async (req, res) => {
