@@ -8,7 +8,7 @@ import "dotenv/config";
 import path from "path";
 const app = express();
 // || 8080 for pro
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);

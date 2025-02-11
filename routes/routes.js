@@ -5,8 +5,8 @@ import jwt from "jsonwebtoken"; // For token creation
 import crypto from "crypto"; // For generating unique tokens
 import nodemailer from "nodemailer"; // For sending emails
 import multer from "multer";
-import cloudinary from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { v2 as cloudinary } from "cloudinary";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import path from "path";
 import "dotenv/config";
 import validateAccess from "../validateAccess .js";
@@ -14,6 +14,7 @@ import authenticateUser from "../authenticateUser .js";
 
 const router = express.Router();
 
+const upload = multer({ storage: multer.memoryStorage() });
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -215,8 +216,8 @@ router.post("/reset-password-request", async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: "Gmail", // Or your email provider
       auth: {
-        user: "ahmadabbani123@gmail.com",
-        pass: "hwbk xmxb tytq ifgf",
+        user: process.env.EMAIL_PROVIDER,
+        pass: process.env.EMAIL_PASSWORD,
       },
       tls: {
         rejectUnauthorized: false, // Ignore SSL certificate errors
@@ -225,7 +226,7 @@ router.post("/reset-password-request", async (req, res) => {
 
     const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
     const mailOptions = {
-      from: "ahmadabbani123@gmail.com",
+      from: process.env.EMAIL_PROVIDER,
       to: email,
       subject: "Password Reset Request",
       text: `Click the link to reset your password: ${resetLink}`,
@@ -722,22 +723,19 @@ router.post("/orders/myorders", async (req, res) => {
 //route to place a payment
 
 // Configure multer to use Cloudinary
-const paymentStorage = new CloudinaryStorage({
+/*const paymentStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "payments", // This will create a folder in your Cloudinary account
     allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
-const uploadPayment = multer({ storage: paymentStorage });
+const uploadPayment = multer({ storage: paymentStorage });*/
 
 // place the payment
-router.post("/payments", uploadPayment.single("image"), async (req, res) => {
+router.post("/payments", upload.single("image"), async (req, res) => {
   const { product_name, amount, type, user_id, username, status } = req.body;
-  const image = req.file ? req.file.path : null; // Get the image path
-  console.log("Request body:", req.body);
-  console.log("Uploaded file:", req.file);
-  console.log("Cloudinary URL:", image);
+
   // Validate required fields
   if (!amount) {
     // || image
@@ -749,6 +747,14 @@ router.post("/payments", uploadPayment.single("image"), async (req, res) => {
 
   let connection;
   try {
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        folder: "payments", // Custom folder
+        allowedFormats: ["jpg", "jpeg", "png"], // Custom allowed formats
+      }
+    );
     // Get a connection from the pool
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -756,7 +762,7 @@ router.post("/payments", uploadPayment.single("image"), async (req, res) => {
     // Insert the payment into the payments table
     const [paymentResult] = await connection.execute(
       "INSERT INTO payments (product_name, amount, image_path, type, user_id, username, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [product_name, amount, image, type, user_id, username, status] // Default status
+      [product_name, amount, result.secure_url, type, user_id, username, status] // Default status
     );
 
     // Get the inserted payment ID
@@ -938,7 +944,7 @@ router.get("/profile/:id", authenticateUser, async (req, res) => {
 
 // create new category
 // Multer configuration for categories
-const categoryStorage = new CloudinaryStorage({
+/*const categoryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "categories",
@@ -946,49 +952,53 @@ const categoryStorage = new CloudinaryStorage({
   },
 });
 
-const uploadCategory = multer({ storage: categoryStorage });
-router.post(
-  "/create/category",
-  uploadCategory.single("image"),
-  async (req, res) => {
-    const { categoryName, section } = req.body;
-    const image = req.file ? req.file.secure_url : null; // Get the image path
+const uploadCategory = multer({ storage: categoryStorage });*/
+router.post("/create/category", upload.single("image"), async (req, res) => {
+  const { categoryName, section } = req.body;
 
-    // Validate inputs
-    if (!categoryName || !section || !image) {
-      return res.status(400).json({
-        categoryStatus: false,
-        message: "All fields are required.",
-      });
-    }
-    console.log("Starting request processing");
-    console.log("Request body:", req.body);
-    console.log("File:", req.file);
-    try {
-      // Insert category into the database
-      const query = `
+  // Validate inputs
+  if (!categoryName || !section || !req.file) {
+    return res.status(400).json({
+      categoryStatus: false,
+      message: "All fields are required.",
+    });
+  }
+  console.log("Starting request processing");
+  console.log("Request body:", req.body);
+  console.log("File:", req.file);
+  try {
+    // Upload with category-specific settings
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        folder: "categories", // Custom folder
+        allowedFormats: ["jpg", "jpeg", "png"], // Custom allowed formats
+      }
+    );
+    // Insert category into the database
+    const query = `
       INSERT INTO categories (category_name, section, image)
       VALUES (?, ?, ?)
     `;
-      const values = [categoryName, section, image];
+    const values = [categoryName, section, result.secure_url];
 
-      const [results] = await db.execute(query, values);
+    const [results] = await db.execute(query, values);
 
-      // Success response
-      res.status(201).json({
-        categoryStatus: true,
-        message: "Category created successfully!",
-        categoryId: results.insertId,
-      });
-    } catch (error) {
-      console.error("Error creating category:", error);
-      res.status(500).json({
-        categoryStatus: false,
-        message: "An error occurred. Please try again.",
-      });
-    }
+    // Success response
+    res.status(201).json({
+      categoryStatus: true,
+      message: "Category created successfully!",
+      categoryId: results.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating category:", error);
+    res.status(500).json({
+      categoryStatus: false,
+      message: "An error occurred. Please try again.",
+    });
   }
-);
+});
 
 //Fetch created categories
 router.get("/categories", async (req, res) => {
@@ -1015,7 +1025,7 @@ router.get("/categories", async (req, res) => {
 });
 
 // Configure multer for product file uploads
-const productStorage = new CloudinaryStorage({
+/*const productStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "products",
@@ -1023,7 +1033,7 @@ const productStorage = new CloudinaryStorage({
   },
 });
 
-const uploadProduct = multer({ storage: productStorage });
+const uploadProduct = multer({ storage: productStorage });*/
 
 // Function to sanitize field names
 const sanitizeFieldName = (fieldName) => {
@@ -1032,91 +1042,94 @@ const sanitizeFieldName = (fieldName) => {
 };
 
 // Create new product
-router.post(
-  "/create/product",
-  uploadProduct.single("image"),
-  async (req, res) => {
-    const { productName, price, params, category_name, parent_id } = req.body;
-    const image = req.file ? req.file.path : null; // Get the image path
-    const fields = req.body.fields || [];
-    const processedParams = params === "" ? null : params;
+router.post("/create/product", upload.single("image"), async (req, res) => {
+  const { productName, price, params, category_name, parent_id } = req.body;
+  const fields = req.body.fields || [];
+  const processedParams = params === "" ? null : params;
 
-    // Validate inputs
-    if (!productName || !price || !image) {
-      return res.status(400).json({
-        productStatus: false,
-        message: "Please fill all fields and upload an image.",
-      });
-    }
+  // Validate inputs
+  if (!productName || !price || !req.file) {
+    return res.status(400).json({
+      productStatus: false,
+      message: "Please fill all fields and upload an image.",
+    });
+  }
 
-    if (!category_name || !parent_id) {
-      return res.status(400).json({
-        productStatus: false,
-        message:
-          "Please select a category from the existing categories or create a category first.",
-      });
-    }
+  if (!category_name || !parent_id) {
+    return res.status(400).json({
+      productStatus: false,
+      message:
+        "Please select a category from the existing categories or create a category first.",
+    });
+  }
 
-    try {
-      // Insert product into the database
-      const query = `
+  try {
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      req.file.mimetype,
+      {
+        folder: "products", // Custom folder
+        allowedFormats: ["jpg", "jpeg", "png"], // Custom allowed formats
+      }
+    );
+    // Insert product into the database
+    const query = `
       INSERT INTO products (product_name, price, params, category_name, parent_id, image, available)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-      const values = [
-        productName,
-        price,
-        processedParams,
-        category_name,
-        parent_id,
-        image,
-        true,
-      ];
+    const values = [
+      productName,
+      price,
+      processedParams,
+      category_name,
+      parent_id,
+      result.secure_url,
+      true,
+    ];
 
-      const [results] = await db.execute(query, values);
+    const [results] = await db.execute(query, values);
 
-      // Handle dynamic fields (if any)
-      if (fields.length > 0) {
-        for (const field of fields) {
-          const { fieldName, fieldType, fieldValue } = field;
+    // Handle dynamic fields (if any)
+    if (fields.length > 0) {
+      for (const field of fields) {
+        const { fieldName, fieldType, fieldValue } = field;
 
-          // Sanitize the field name
-          const sanitizedFieldName = sanitizeFieldName(fieldName);
+        // Sanitize the field name
+        const sanitizedFieldName = sanitizeFieldName(fieldName);
 
-          // Add column to the products table if it doesn't exist
-          const alterQuery = `
+        // Add column to the products table if it doesn't exist
+        const alterQuery = `
           ALTER TABLE products
           ADD COLUMN \`${sanitizedFieldName}\` ${
-            fieldType === "NUMBER" ? "INT" : "VARCHAR(255)"
-          }
+          fieldType === "NUMBER" ? "INT" : "VARCHAR(255)"
+        }
         `;
-          await db.execute(alterQuery);
+        await db.execute(alterQuery);
 
-          // Update the newly added column with the field value
-          const updateQuery = `
+        // Update the newly added column with the field value
+        const updateQuery = `
           UPDATE products
           SET \`${sanitizedFieldName}\` = ?
           WHERE id = ?
         `;
-          await db.execute(updateQuery, [fieldValue, results.insertId]);
-        }
+        await db.execute(updateQuery, [fieldValue, results.insertId]);
       }
-
-      // Success response
-      res.status(201).json({
-        productStatus: true,
-        message: "Product created successfully!",
-        productId: results.insertId,
-      });
-    } catch (error) {
-      console.error("Error creating product:", error);
-      res.status(500).json({
-        productStatus: false,
-        message: "An error occurred. Please try again.",
-      });
     }
+
+    // Success response
+    res.status(201).json({
+      productStatus: true,
+      message: "Product created successfully!",
+      productId: results.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({
+      productStatus: false,
+      message: "An error occurred. Please try again.",
+    });
   }
-);
+});
 
 // Delete a product
 router.delete("/delete/product/:id", async (req, res) => {
