@@ -54,7 +54,7 @@ router.post("/signup", async (req, res) => {
     // Insert the user into the database
     await db.execute(
       "INSERT INTO users (username, email, phone, password, role) VALUES (?, ?, ?, ?, ?)",
-      [username, email, phone, hashedPassword, "admin"]
+      [username, email, phone, hashedPassword, "user"]
     );
 
     return res.status(200).json({
@@ -601,14 +601,7 @@ router.delete("/users/:id", authenticateUser, async (req, res) => {
     const userId = req.params.id;
     const requesterId = req.user?.id;
     const requesterRole = req.user?.role;
-    console.log(
-      "id param:",
-      userId,
-      "user.id from authnticate:",
-      requesterId,
-      "user.role from authnticate:",
-      requesterRole
-    );
+
     // Admin can delete anyone; users can only delete themselves
     if (requesterRole !== "admin" && requesterId !== userId) {
       return res.status(403).json({ error: "Unauthorized action." });
@@ -747,14 +740,18 @@ router.post("/payments", upload.single("image"), async (req, res) => {
 
   let connection;
   try {
-    const result = await uploadToCloudinary(
-      req.file.buffer,
-      req.file.mimetype,
-      {
-        folder: "payments", // Custom folder
-        allowedFormats: ["jpg", "jpeg", "png"], // Custom allowed formats
-      }
-    );
+    let imageUrl = null;
+    if (req.file) {
+      const result = await uploadToCloudinary(
+        req.file.buffer,
+        req.file.mimetype,
+        {
+          folder: "payments", // Custom folder
+          allowedFormats: ["jpg", "jpeg", "png"], // Custom allowed formats
+        }
+      );
+      imageUrl = result.secure_url;
+    }
     // Get a connection from the pool
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -762,7 +759,7 @@ router.post("/payments", upload.single("image"), async (req, res) => {
     // Insert the payment into the payments table
     const [paymentResult] = await connection.execute(
       "INSERT INTO payments (product_name, amount, image_path, type, user_id, username, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [product_name, amount, result.secure_url, type, user_id, username, status] // Default status
+      [product_name, amount, imageUrl, type, user_id, username, status] // Default status
     );
 
     // Get the inserted payment ID
