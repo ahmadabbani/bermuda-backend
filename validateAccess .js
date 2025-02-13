@@ -17,7 +17,6 @@ const validateAccess = (req, res, next) => {
 
     // Get the requested user ID from request body
     const { id } = req.params;
-    console.log("valdateaccess id from params:", id);
 
     if (!id) {
       return res.status(400).json({

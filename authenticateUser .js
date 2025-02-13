@@ -11,7 +11,7 @@ const authenticateUser = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
     // Hardcoded secret
-    console.log("token:", decoded);
+
     req.user = {
       id: decoded.id.toString(),
       role: decoded.role,

@@ -24,7 +24,6 @@ router.get("/products", async (req, res) => {
     const { data } = await axios.get(`${API_BASE_URL}/products`, {
       headers: { "api-token": API_TOKEN },
     });
-    console.log("Sending data structure:", typeof data, Array.isArray(data));
     res.json(data);
   } catch (error) {
     console.error("Error fetching products:", error.message);

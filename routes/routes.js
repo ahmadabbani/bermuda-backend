@@ -265,15 +265,13 @@ router.post("/reset-password/:token", async (req, res) => {
 
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    console.log("Hashed password:", hashedPassword);
 
     // Update the user's password and clear the token
     const [result] = await db.execute(
       "UPDATE users SET password = ?, reset_token = NULL, token_expiration = NULL WHERE id = ?",
       [hashedPassword, user[0].id]
     );
-    console.log("Password update result:", result);
-    console.log("User found:", user);
+
     // Clear the token
     res.clearCookie("token", {
       httpOnly: true,
@@ -406,7 +404,6 @@ router.post("/orders", async (req, res) => {
   // Handle missing or empty params
   const params = req.body.params ? String(req.body.params) : "";
 
-  console.log("Values being inserted:", params); // Debugging
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -907,7 +904,6 @@ router.get("/profile/:id", authenticateUser, async (req, res) => {
     const targetUserId = req.params.id.toString();
     const requesterId = req.user.id;
     const requesterRole = req.user.role;
-    console.log("test:", targetUserId, requesterId, requesterRole);
     if (!targetUserId) {
       return res.status(400).json({
         success: false,
@@ -960,9 +956,7 @@ router.post("/create/category", upload.single("image"), async (req, res) => {
       message: "All fields are required.",
     });
   }
-  console.log("Starting request processing");
-  console.log("Request body:", req.body);
-  console.log("File:", req.file);
+
   try {
     // Upload with category-specific settings
     const result = await uploadToCloudinary(
