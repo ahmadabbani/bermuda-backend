@@ -595,9 +595,9 @@ router.get("/users/search", async (req, res) => {
 // Delete user
 router.delete("/users/:id", authenticateUser, async (req, res) => {
   try {
-    const userId = req.params.id;
-    const requesterId = req.user?.id;
-    const requesterRole = req.user?.role;
+    const userId = req.params.id.toString();
+    const requesterId = req.user.id;
+    const requesterRole = req.user.role;
 
     // Admin can delete anyone; users can only delete themselves
     if (requesterRole !== "admin" && requesterId !== userId) {
@@ -620,9 +620,9 @@ router.delete("/users/:id", authenticateUser, async (req, res) => {
 });
 
 // GET user by ID
-router.get("/users/:id", authenticateUser, async (req, res) => {
+router.get("/users/:id", async (req, res) => {
   try {
-    const userId = req.params.id;
+    const userId = req.params.id.toString();
 
     // Fetch user from database
     const [users] = await db.execute(
@@ -633,7 +633,6 @@ router.get("/users/:id", authenticateUser, async (req, res) => {
     if (users.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-
     // Return user data (excluding sensitive fields like password)
     res.status(200).json({ user: users[0] });
   } catch (error) {
@@ -904,6 +903,7 @@ router.get("/profile/:id", authenticateUser, async (req, res) => {
     const targetUserId = req.params.id.toString();
     const requesterId = req.user.id;
     const requesterRole = req.user.role;
+
     if (!targetUserId) {
       return res.status(400).json({
         success: false,
