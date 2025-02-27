@@ -54,7 +54,7 @@ router.post("/signup", async (req, res) => {
     // Insert the user into the database
     await db.execute(
       "INSERT INTO users (username, email, phone, password, role) VALUES (?, ?, ?, ?, ?)",
-      [username, email, phone, hashedPassword, "user"]
+      [username, email, phone, hashedPassword, "admin"]
     );
 
     return res.status(200).json({
